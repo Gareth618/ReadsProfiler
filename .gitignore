@@ -1,0 +1,13 @@
+.DS_Store
+.vscode
+db.sqlite
+
+Init/Init.app
+Init/.qmake.stash
+Init/main.o
+Init/Makefile
+
+Client/Client.app
+Client/.qmake.stash
+Client/main.o
+Client/Makefile
