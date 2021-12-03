@@ -159,9 +159,30 @@ void populateDatabase() {
     addBook("9780262033848", "Introduction to Algorithms", 2009, 4.5, {"Thomas Cormen", "Charles Leiserson", "Ronald Rivest", "Clifford Stein"}, {"Science", "Computer Science"});
     addBook("9780201896831", "The Art of Computer Programming", 1968, 4, {"Donald Knuth"}, {"Science", "Computer Science"});
     addBook("9781473695993", "Brief Answers to the Big Questions", 2018, 5, {"Stephen Hawking"}, {"Science", "Physics", "Astronomy"});
+    addBook("9780123618013", "Twenty Thousand Leagues Under the Sea", 1872, 4.75, {"Jules Verne"}, {"Adventure"});
+    addBook("9780123618014", "Around the World in Eighty Days", 1873, 4, {"Jules Verne"}, {"Adventure"});
+    addBook("9780123618017", "Journey to the Center of the Earth", 1871, 5, {"Jules Verne"}, {"Fiction", "Science Fiction", "Adventure"});
+    addBook("9780978824693", "Rich Dad Poor Dad", 2000, 1.618, {"Robert Kiyosaki"}, {"Self-Help", "Finance"});
+    addBook("9781439167346", "How to Win Friends and Influence People", 1937, 3, {"Dale Carnegie"}, {"Self-Help"});
+    addBook("9780671035975", "How to Stop Worrying and Start Living", 1948, 4.3, {"Dale Carnegie"}, {"Self-Help"});
+    addBook("9780525501220", "The Four", 2017, 4, {"Scott Galloway"}, {"Self-Help", "Business"});
+    addBook("9780973922311", "Ion", 1920, 5, {"Liviu Rebreanu"}, {"Novel"});
+    addBook("9786069335505", "Baltagul", 1930, 4.4, {"Mihail Sadoveanu"}, {"Novel"});
+    addBook("9786186186186", "Gareth and the Strange UFO", 2022, 5, {"Gareth", "Oracolul"}, {"Fiction", "Science Fiction", "Adventure", "Fantasy"});
+    addBook("9786186186185", "The Phantom of the Opera", 1910, 4, {"Gaston Leroux"}, {"Fiction", "Gothic Fiction"});
+    addBook("9786186186184", "Pride and Prejudice", 1813, 4, {"Jane Austen"}, {"Novel", "Romance"});
+    addBook("9786186186183", "Alone in the World", 1878, 4, {"Hector Malot"}, {"Novel"});
+    addBook("9786186186182", "The Invisible Man", 1897, 4, {"Herbert George Wells"}, {"Novel", "Horror", "Fiction", "Science Fiction"});
     addGenreEdge("Science", "Computer Science");
     addGenreEdge("Science", "Physics");
     addGenreEdge("Science", "Astronomy");
+    addGenreEdge("Self-Help", "Finance");
+    addGenreEdge("Self-Help", "Business");
+    addGenreEdge("Novel", "Horror");
+    addGenreEdge("Novel", "Romance");
+    addGenreEdge("Fiction", "Fantasy");
+    addGenreEdge("Fiction", "Gothic Fiction");
+    addGenreEdge("Fiction", "Science Fiction");
 }
 
 int main() {
