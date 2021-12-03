@@ -6,8 +6,9 @@ string username;
 QSqlDatabase db;
 
 void screenSignIn();
-void screenHome(int item);
+void screenHome(int);
 void screenSearchBook();
+void screenYouMayLike();
 void screenExploreGenres();
 void screenExploreAuthors();
 
@@ -38,7 +39,7 @@ void screenHome(int item) {
     printLogo();
     vector<pair<string, function<void()>>> items = {
         make_pair("search book", [&]() { screenSearchBook(); screenHome(item); }),
-        make_pair("you may like…", [&]() { screenHome(item); }),
+        make_pair("you may like…", [&]() { screenYouMayLike(); screenHome(item); }),
         make_pair("explore genres", [&]() { screenExploreGenres(); screenHome(item); }),
         make_pair("explore authors", [&]() { screenExploreAuthors(); screenHome(item); }),
         make_pair("sign-out", []() { system("clear"); })
@@ -71,7 +72,7 @@ void screenSearchBook() {
     cout << BOLD << GREEN << "rating: " << DEFAULT << NORMAL; string ratingStr; getline(cin, ratingStr);
     cout << CURSOR_OFF;
     int year = 0; try { year = stoi(yearStr); } catch (invalid_argument exc) { }
-    double rating = 0; try { year = stod(ratingStr); } catch (invalid_argument exc) { }
+    double rating = 0; try { rating = stod(ratingStr); } catch (invalid_argument exc) { }
 
     QSqlQuery query("SELECT COUNT(*) FROM history");
     query.next();
@@ -96,91 +97,30 @@ void screenSearchBook() {
     if (!genre.empty()) query.addBindValue(genre.c_str());
     query.exec();
 
-    map<string, tuple<string, vector<string>, vector<string>, int, double, int>> results;
-    auto search = [&]() {
-        query.exec();
-        while (query.next()) {
-            const string isbn = query.value(0).toString().toStdString();
-            if (results.count(isbn))
-                get<5>(results[isbn])++;
-            else
-                results[isbn] = make_tuple(
-                    query.value(1).toString().toStdString(),
-                    getBookAuthors(isbn),
-                    getBookGenres(isbn),
-                    query.value(2).toInt(),
-                    query.value(3).toDouble(),
-                    1
-                );
-        }
-    };
+    vector<string> isbns; if (!isbn.empty()) isbns.push_back(isbn);
+    vector<string> titles; if (!title.empty()) titles.push_back(title);
+    vector<string> authors; if (!author.empty()) authors.push_back(author);
+    vector<string> genres; if (!genre.empty()) genres.push_back(genre);
+    vector<int> years; if (year) years.push_back(year);
+    vector<double> ratings; if (rating) ratings.push_back(rating);
 
-    if (!isbn.empty()) {
-        query.prepare("SELECT * FROM books WHERE isbn = ?");
-        query.addBindValue(isbn.c_str());
-        search();
-    }
-    if (!title.empty()) {
-        query.prepare("SELECT * FROM books WHERE LOWER(title) = LOWER(?)");
-        query.addBindValue(title.c_str());
-        search();
-    }
-    if (!author.empty()) {
-        query.prepare("SELECT b.isbn, b.title, b.year, b.rating FROM books b JOIN book_author ba ON b.isbn = ba.isbn JOIN authors a ON ba.id_author = a.id_author WHERE LOWER(a.name) = LOWER(?)");
-        query.addBindValue(author.c_str());
-        search();
-    }
-    if (!genre.empty()) {
-        query.prepare("SELECT b.isbn, b.title, b.year, b.rating FROM books b JOIN book_genre bg ON b.isbn = bg.isbn JOIN genres g ON bg.id_genre = g.id_genre WHERE LOWER(g.name) = LOWER(?)");
-        query.addBindValue(genre.c_str());
-        search();
-    }
-    if (year) {
-        query.prepare("SELECT * FROM books WHERE year = ?");
-        query.addBindValue(year);
-        search();
-    }
-    if (rating) {
-        query.prepare("SELECT * FROM books WHERE ABS(rating - ?) < .25");
-        query.addBindValue(rating);
-        search();
-    }
-
+    auto results = getBooks(isbns, titles, authors, genres, years, ratings);
     if (results.empty()) {
         cout << RED << "Your query didn't return any results!\n" << DEFAULT;
         getKey();
         return;
     }
-    vector<pair<int, string>> order;
-    for (auto& [isbn, book] : results)
-        order.emplace_back(get<5>(book), isbn);
-    sort(order.rbegin(), order.rend());
-
     function<void(int)> screenResult = [&](int index) {
         printLogo();
-        auto& [title, authors, genres, year, rating, score] = results[order[index].second];
-        cout << BOLD << GREEN << title << DEFAULT << NORMAL;
-        cout << PURPLE << " (" << year << ")\n" << DEFAULT;
-        cout << YELLOW << rating << " rating " << DEFAULT;
-        for (int i = 1; i <= rating; i++)
-            cout << "⭐";
-        cout << '\n';
-        cout << BOLD << BLUE << "author" << (authors.size() == 1 ? "" : "s") << ": " << DEFAULT << NORMAL;
-        for (int i = 0; i < int(authors.size()) - 1; i++)
-            cout << authors[i] << ", ";
-        cout << authors.back() << '\n';
-        cout << BOLD << BLUE << "genre" << (genres.size() == 1 ? "" : "s") << ": " << DEFAULT << NORMAL;
-        for (int i = 0; i < int(genres.size()) - 1; i++)
-            cout << genres[i] << ", ";
-        cout << genres.back() << '\n';
+        cout << BOLD << BLUE << "Search Book 🔍\n\n" << DEFAULT << NORMAL;
+        printBook(results[index]);
         cout << '\n' << index + 1 << '/' << results.size() << '\n';
-
         const string arrow = getArrow();
         if (arrow == "ENTER") {
             QSqlQuery query;
             query.prepare("INSERT INTO downloads VALUES (?, ?)");
             query.addBindValue(idSearch);
-            query.addBindValue(order[index].second.c_str());
+            query.addBindValue(get<0>(results[index]).c_str());
             query.exec();
             return screenResult(index);
         }
@@ -195,9 +135,75 @@ void screenSearchBook() {
     return screenResult(0);
 }
 
+void screenYouMayLike() {
+    QSqlQuery query;
+    vector<string> isbns;
+    query.prepare("SELECT h.isbn FROM users u JOIN history h ON u.username = h.username JOIN books b ON h.isbn = b.isbn WHERE username = ?");
+    query.addBindValue(username.c_str());
+    query.exec();
+    while (query.next())
+        isbns.push_back(query.value(0).toString().toStdString());
+    vector<string> titles;
+    query.prepare("SELECT LOWER(h.title) FROM users u JOIN history h ON u.username = h.username JOIN books b ON LOWER(h.title) = LOWER(b.title) WHERE username = ?");
+    query.addBindValue(username.c_str());
+    query.exec();
+    while (query.next())
+        titles.push_back(query.value(0).toString().toStdString());
+    vector<string> authors;
+    query.prepare("SELECT LOWER(h.author) FROM users u JOIN history h ON u.username = h.username JOIN books b ON LOWER(h.author) = LOWER(b.author) WHERE username = ?");
+    query.addBindValue(username.c_str());
+    query.exec();
+    while (query.next())
+        authors.push_back(query.value(0).toString().toStdString());
+    vector<string> genres;
+    query.prepare("SELECT LOWER(h.genre) FROM users u JOIN history h ON u.username = h.username JOIN books b ON LOWER(h.genre) = LOWER(b.genre) WHERE username = ?");
+    query.addBindValue(username.c_str());
+    query.exec();
+    while (query.next())
+        genres.push_back(query.value(0).toString().toStdString());
+    vector<int> years;
+    query.prepare("SELECT h.year FROM users u JOIN history h ON u.username = h.username JOIN books b ON h.year = b.year WHERE username = ?");
+    query.addBindValue(username.c_str());
+    query.exec();
+    while (query.next())
+        years.push_back(query.value(0).toInt());
+    vector<double> ratings;
+    query.prepare("SELECT h.rating FROM users u JOIN history h ON u.username = h.username JOIN books b ON ABS(h.rating - b.rating) < .25 WHERE username = ?");
+    query.addBindValue(username.c_str());
+    query.exec();
+    while (query.next())
+        ratings.push_back(query.value(0).toDouble());
+
+    auto results1 = getBooks(vector<string>(), vector<string>(), authors, genres, vector<int>(), vector<double>());
+    auto results2 = getBooks(isbns, titles, vector<string>(), vector<string>(), years, ratings);
+    auto results3 = getBooks(get5isbns(), vector<string>(), vector<string>(), vector<string>(), vector<int>(), vector<double>());
+    for (int i = 0; results1.size() < 5 && i < int(results2.size()); i++)
+        results1.push_back(results2[i]);
+    for (int i = 0; results1.size() < 5 && i < int(results3.size()); i++)
+        results1.push_back(results3[i]);
+
+    function<void(int)> screenResult = [&](int index) {
+        printLogo();
+        cout << BOLD << BLUE << "You may like… 💡\n\n" << DEFAULT << NORMAL;
+        printBook(results1[index]);
+        cout << '\n' << index + 1 << '/' << results1.size() << '\n';
+        const string arrow = getArrow();
+        if (arrow == "ENTER")
+            return screenResult(index);
+        if (arrow == "BACKSPACE")
+            return;
+        if (arrow == "RIGHT" && index < int(results1.size()) - 1)
+            return screenResult(index + 1);
+        if (arrow == "LEFT" && index > 0)
+            return screenResult(index - 1);
+        return screenResult(index);
+    };
+    return screenResult(0);
+}
+
 void screenExploreGenres() {
     printLogo();
-    cout << BOLD << BLUE << "Explore Genres 📚\n" << DEFAULT << NORMAL;
+    cout << BOLD << BLUE << "Explore Genres 📚\n\n" << DEFAULT << NORMAL;
     auto tree = getGenreHierarchy();
     auto& roots = tree.first;
     auto& edges = tree.second;

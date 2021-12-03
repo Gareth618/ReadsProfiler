@@ -1,4 +1,5 @@
 #include <deque>
+#include <vector>
 #include <iostream>
 #include <unistd.h>
 #include <termios.h>
@@ -24,6 +25,25 @@ void printLogo() {
     cout << " |  _ <  __/ (_| | (_| \\__ \\  __/| | | (_) |  _| | |  __/ |   \n";
     cout << " |_| \\_\\___|\\__,_|\\__,_|___/_|   |_|  \\___/|_| |_|_|\\___|_|   \n\n";
     cout << DEFAULT;
+}
+
+void printBook(tuple<string, string, vector<string>, vector<string>, int, double>& book) {
+    auto& [isbn, title, authors, genres, year, rating] = book;
+    cout << BOLD << GREEN << title << DEFAULT << NORMAL;
+    cout << PURPLE << " (" << year << ")\n" << DEFAULT;
+    cout << YELLOW << rating << " rating " << DEFAULT;
+    for (int i = 1; i <= rating; i++)
+        cout << "⭐";
+    cout << '\n';
+    cout << BOLD << BLUE << "author" << (authors.size() == 1 ? "" : "s") << ": " << DEFAULT << NORMAL;
+    for (int i = 0; i < int(authors.size()) - 1; i++)
+        cout << authors[i] << ", ";
+    cout << authors.back() << '\n';
+    cout << BOLD << BLUE << "genre" << (genres.size() == 1 ? "" : "s") << ": " << DEFAULT << NORMAL;
+    for (int i = 0; i < int(genres.size()) - 1; i++)
+        cout << genres[i] << ", ";
+    cout << genres.back() << '\n';
+    cout << BOLD << BLUE << "isbn: " << DEFAULT << NORMAL << isbn << '\n';
 }
 
 char getKey() {
