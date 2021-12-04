@@ -26,10 +26,9 @@ pair<string, vector<string>> getAuthorGenres(string author) {
     query.exec();
     if (query.next())
         author = query.value(0).toString().toStdString();
-    query.prepare("SELECT g.name FROM authors a "
+    query.prepare("SELECT DISTINCT g.name FROM authors a "
         "JOIN book_author ba ON a.id_author = ba.id_author "
-        "JOIN books b ON ba.isbn = b.isbn "
-        "JOIN book_genre bg ON b.isbn = bg.isbn "
+        "JOIN book_genre bg ON ba.isbn = bg.isbn "
         "JOIN genres g ON bg.id_genre = g.id_genre "
     "WHERE a.name = ?");
     query.addBindValue(author.c_str());
@@ -42,7 +41,7 @@ pair<string, vector<string>> getAuthorGenres(string author) {
 
 vector<string> getBookAuthors(string isbn) {
     QSqlQuery query;
-    query.prepare("SELECT a.name FROM book_author ba JOIN authors a ON ba.id_author = a.id_author WHERE isbn = ?");
+    query.prepare("SELECT a.name FROM book_author ba JOIN authors a ON ba.id_author = a.id_author WHERE ba.isbn = ?");
     query.addBindValue(isbn.c_str());
     query.exec();
     vector<string> authors;
@@ -53,7 +52,7 @@ vector<string> getBookAuthors(string isbn) {
 
 vector<string> getBookGenres(string isbn) {
     QSqlQuery query;
-    query.prepare("SELECT g.name FROM book_genre bg JOIN genres g ON bg.id_genre = g.id_genre WHERE isbn = ?");
+    query.prepare("SELECT g.name FROM book_genre bg JOIN genres g ON bg.id_genre = g.id_genre WHERE bg.isbn = ?");
     query.addBindValue(isbn.c_str());
     query.exec();
     vector<string> genres;

@@ -137,62 +137,81 @@ void screenSearchBook() {
 
 void screenYouMayLike() {
     QSqlQuery query;
+    query.prepare("SELECT d.isbn FROM users u JOIN history h ON u.username = h.username JOIN downloads d ON h.id_search = d.id_search WHERE u.username = ?");
+    query.addBindValue(username.c_str());
+    query.exec();
+    set<string> used;
+    while (query.next())
+        used.insert(query.value(0).toString().toStdString());
+
     vector<string> isbns;
-    query.prepare("SELECT h.isbn FROM users u JOIN history h ON u.username = h.username JOIN books b ON h.isbn = b.isbn WHERE username = ?");
+    query.prepare("SELECT h.isbn FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.isbn IS NOT NULL");
     query.addBindValue(username.c_str());
     query.exec();
     while (query.next())
         isbns.push_back(query.value(0).toString().toStdString());
     vector<string> titles;
-    query.prepare("SELECT LOWER(h.title) FROM users u JOIN history h ON u.username = h.username JOIN books b ON LOWER(h.title) = LOWER(b.title) WHERE username = ?");
+    query.prepare("SELECT h.title FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.title IS NOT NULL");
     query.addBindValue(username.c_str());
     query.exec();
     while (query.next())
         titles.push_back(query.value(0).toString().toStdString());
     vector<string> authors;
-    query.prepare("SELECT LOWER(h.author) FROM users u JOIN history h ON u.username = h.username JOIN books b ON LOWER(h.author) = LOWER(b.author) WHERE username = ?");
+    query.prepare("SELECT h.author FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.author IS NOT NULL");
     query.addBindValue(username.c_str());
     query.exec();
     while (query.next())
         authors.push_back(query.value(0).toString().toStdString());
     vector<string> genres;
-    query.prepare("SELECT LOWER(h.genre) FROM users u JOIN history h ON u.username = h.username JOIN books b ON LOWER(h.genre) = LOWER(b.genre) WHERE username = ?");
+    query.prepare("SELECT h.genre FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.genre IS NOT NULL");
     query.addBindValue(username.c_str());
     query.exec();
     while (query.next())
         genres.push_back(query.value(0).toString().toStdString());
     vector<int> years;
-    query.prepare("SELECT h.year FROM users u JOIN history h ON u.username = h.username JOIN books b ON h.year = b.year WHERE username = ?");
+    query.prepare("SELECT h.year FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.year IS NOT NULL");
     query.addBindValue(username.c_str());
     query.exec();
     while (query.next())
         years.push_back(query.value(0).toInt());
     vector<double> ratings;
-    query.prepare("SELECT h.rating FROM users u JOIN history h ON u.username = h.username JOIN books b ON ABS(h.rating - b.rating) < .25 WHERE username = ?");
+    query.prepare("SELECT h.rating FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.rating IS NOT NULL");
     query.addBindValue(username.c_str());
     query.exec();
     while (query.next())
         ratings.push_back(query.value(0).toDouble());
 
+    vector<tuple<string, string, vector<string>, vector<string>, int, double>> results;
     auto results1 = getBooks(vector<string>(), vector<string>(), authors, genres, vector<int>(), vector<double>());
     auto results2 = getBooks(isbns, titles, vector<string>(), vector<string>(), years, ratings);
     auto results3 = getBooks(get5isbns(), vector<string>(), vector<string>(), vector<string>(), vector<int>(), vector<double>());
-    for (int i = 0; results1.size() < 5 && i < int(results2.size()); i++)
-        results1.push_back(results2[i]);
-    for (int i = 0; results1.size() < 5 && i < int(results3.size()); i++)
-        results1.push_back(results3[i]);
+    for (int i = 0; results.size() < 5 && i < int(results1.size()); i++)
+        if (!used.count(get<0>(results1[i]))) {
+            results.push_back(results1[i]);
+            used.insert(get<0>(results1[i]));
+        }
+    for (int i = 0; results.size() < 5 && i < int(results2.size()); i++)
+        if (!used.count(get<0>(results2[i]))) {
+            results.push_back(results2[i]);
+            used.insert(get<0>(results2[i]));
+        }
+    for (int i = 0; results.size() < 5 && i < int(results3.size()); i++)
+        if (!used.count(get<0>(results3[i]))) {
+            results.push_back(results3[i]);
+            used.insert(get<0>(results3[i]));
+        }
 
     function<void(int)> screenResult = [&](int index) {
         printLogo();
         cout << BOLD << BLUE << "You may like… 💡\n\n" << DEFAULT << NORMAL;
-        printBook(results1[index]);
-        cout << '\n' << index + 1 << '/' << results1.size() << '\n';
+        printBook(results[index]);
+        cout << '\n' << index + 1 << '/' << results.size() << '\n';
         const string arrow = getArrow();
         if (arrow == "ENTER")
             return screenResult(index);
         if (arrow == "BACKSPACE")
             return;
-        if (arrow == "RIGHT" && index < int(results1.size()) - 1)
+        if (arrow == "RIGHT" && index < int(results.size()) - 1)
             return screenResult(index + 1);
         if (arrow == "LEFT" && index > 0)
             return screenResult(index - 1);
@@ -207,12 +226,12 @@ void screenExploreGenres() {
     auto tree = getGenreHierarchy();
     auto& roots = tree.first;
     auto& edges = tree.second;
-    function<void(string, int)> dfs = [&](string fath, int tab) {
+    function<void(string, int)> dfs = [&](string node, int tab) {
         for (int i = 0; i < tab; i++)
             cout << ' ';
-        cout << YELLOW << "- " << DEFAULT << fath << '\n';
-        for (string node : edges[fath])
-            dfs(node, tab + 2);
+        cout << YELLOW << "- " << DEFAULT << node << '\n';
+        for (string son : edges[node])
+            dfs(son, tab + 2);
     };
     for (string root : roots)
         dfs(root, 0);
