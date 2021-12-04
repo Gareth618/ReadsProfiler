@@ -159,6 +159,8 @@ void populateDatabase() {
     addBook("9780262033848", "Introduction to Algorithms", 2009, 4.5, {"Thomas Cormen", "Charles Leiserson", "Ronald Rivest", "Clifford Stein"}, {"Science", "Computer Science"});
     addBook("9780201896831", "The Art of Computer Programming", 1968, 4, {"Donald Knuth"}, {"Science", "Computer Science"});
     addBook("9781473695993", "Brief Answers to the Big Questions", 2018, 5, {"Stephen Hawking"}, {"Science", "Physics", "Astronomy"});
+    addBook("9780553109535", "A Brief History of Time", 1988, 4, {"Stephen Hawking"}, {"Science", "Physics"});
+    addBook("9780553802020", "The Universe in a Nutshell", 2001, 4.5, {"Stephen Hawking"}, {"Science", "Astronomy"});
     addBook("9780123618013", "Twenty Thousand Leagues Under the Sea", 1872, 4.75, {"Jules Verne"}, {"Adventure"});
     addBook("9780123618014", "Around the World in Eighty Days", 1873, 4, {"Jules Verne"}, {"Adventure"});
     addBook("9780123618017", "Journey to the Center of the Earth", 1871, 5, {"Jules Verne"}, {"Fiction", "Science Fiction", "Adventure"});

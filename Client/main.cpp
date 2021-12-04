@@ -16,18 +16,15 @@ void screenSignIn() {
     printLogo();
     cout << CURSOR_ON;
     cout << BOLD << GREEN << "username: " << DEFAULT << NORMAL; getline(cin, username);
-    string password = getpass((BOLD + GREEN + "password: " + DEFAULT + NORMAL).c_str());
+    const string password = getpass((BOLD + GREEN + "password: " + DEFAULT + NORMAL).c_str());
     cout << CURSOR_OFF;
-    QSqlQuery query;
-    query.prepare("SELECT password FROM users WHERE username = ?");
-    query.addBindValue(username.c_str());
-    query.exec();
-    if (!query.next()) {
+    const string result = signIn(username, password);
+    if (result == "username") {
         cout << RED << "User " << username << " doesn't exist!\n" << DEFAULT;
         getKey();
         return screenSignIn();
     }
-    if (password != query.value(0).toString().toStdString()) {
+    if (result == "password") {
         cout << RED << "Wrong password!\n" << DEFAULT;
         getKey();
         return screenSignIn();
@@ -73,29 +70,7 @@ void screenSearchBook() {
     cout << CURSOR_OFF;
     int year = 0; try { year = stoi(yearStr); } catch (invalid_argument exc) { }
     double rating = 0; try { rating = stod(ratingStr); } catch (invalid_argument exc) { }
-
-    QSqlQuery query("SELECT COUNT(*) FROM history");
-    query.next();
-    const int idSearch = query.value(0).toInt() + 1;
-    query.prepare((
-        string("INSERT INTO history VALUES (?, ?, ")
-        + (isbn.empty() ? "NULL, " : "?, ")
-        + (title.empty() ? "NULL, " : "?, ")
-        + (!year ? "NULL, " : "?, ")
-        + (!rating ? "NULL, " : "?, ")
-        + (author.empty() ? "NULL, " : "?, ")
-        + (genre.empty() ? "NULL" : "?")
-        + ")"
-    ).c_str());
-    query.addBindValue(idSearch);
-    query.addBindValue(username.c_str());
-    if (!isbn.empty()) query.addBindValue(isbn.c_str());
-    if (!title.empty()) query.addBindValue(title.c_str());
-    if (year) query.addBindValue(year);
-    if (rating) query.addBindValue(rating);
-    if (!author.empty()) query.addBindValue(author.c_str());
-    if (!genre.empty()) query.addBindValue(genre.c_str());
-    query.exec();
+    const int idSearch = updateHistory(username, isbn, title, year, rating, author, genre);
 
     vector<string> isbns; if (!isbn.empty()) isbns.push_back(isbn);
     vector<string> titles; if (!title.empty()) titles.push_back(title);
@@ -117,11 +92,7 @@ void screenSearchBook() {
         cout << '\n' << index + 1 << '/' << results.size() << '\n';
         const string arrow = getArrow();
         if (arrow == "ENTER") {
-            QSqlQuery query;
-            query.prepare("INSERT INTO downloads VALUES (?, ?)");
-            query.addBindValue(idSearch);
-            query.addBindValue(get<0>(results[index]).c_str());
-            query.exec();
+            updateDownloads(idSearch, get<0>(results[index]));
             return screenResult(index);
         }
         if (arrow == "BACKSPACE")
@@ -136,71 +107,7 @@ void screenSearchBook() {
 }
 
 void screenYouMayLike() {
-    QSqlQuery query;
-    query.prepare("SELECT d.isbn FROM users u JOIN history h ON u.username = h.username JOIN downloads d ON h.id_search = d.id_search WHERE u.username = ?");
-    query.addBindValue(username.c_str());
-    query.exec();
-    set<string> used;
-    while (query.next())
-        used.insert(query.value(0).toString().toStdString());
-
-    vector<string> isbns;
-    query.prepare("SELECT h.isbn FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.isbn IS NOT NULL");
-    query.addBindValue(username.c_str());
-    query.exec();
-    while (query.next())
-        isbns.push_back(query.value(0).toString().toStdString());
-    vector<string> titles;
-    query.prepare("SELECT h.title FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.title IS NOT NULL");
-    query.addBindValue(username.c_str());
-    query.exec();
-    while (query.next())
-        titles.push_back(query.value(0).toString().toStdString());
-    vector<string> authors;
-    query.prepare("SELECT h.author FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.author IS NOT NULL");
-    query.addBindValue(username.c_str());
-    query.exec();
-    while (query.next())
-        authors.push_back(query.value(0).toString().toStdString());
-    vector<string> genres;
-    query.prepare("SELECT h.genre FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.genre IS NOT NULL");
-    query.addBindValue(username.c_str());
-    query.exec();
-    while (query.next())
-        genres.push_back(query.value(0).toString().toStdString());
-    vector<int> years;
-    query.prepare("SELECT h.year FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.year IS NOT NULL");
-    query.addBindValue(username.c_str());
-    query.exec();
-    while (query.next())
-        years.push_back(query.value(0).toInt());
-    vector<double> ratings;
-    query.prepare("SELECT h.rating FROM users u JOIN history h ON u.username = h.username WHERE u.username = ? AND h.rating IS NOT NULL");
-    query.addBindValue(username.c_str());
-    query.exec();
-    while (query.next())
-        ratings.push_back(query.value(0).toDouble());
-
-    vector<tuple<string, string, vector<string>, vector<string>, int, double>> results;
-    auto results1 = getBooks(vector<string>(), vector<string>(), authors, genres, vector<int>(), vector<double>());
-    auto results2 = getBooks(isbns, titles, vector<string>(), vector<string>(), years, ratings);
-    auto results3 = getBooks(get5isbns(), vector<string>(), vector<string>(), vector<string>(), vector<int>(), vector<double>());
-    for (int i = 0; results.size() < 5 && i < int(results1.size()); i++)
-        if (!used.count(get<0>(results1[i]))) {
-            results.push_back(results1[i]);
-            used.insert(get<0>(results1[i]));
-        }
-    for (int i = 0; results.size() < 5 && i < int(results2.size()); i++)
-        if (!used.count(get<0>(results2[i]))) {
-            results.push_back(results2[i]);
-            used.insert(get<0>(results2[i]));
-        }
-    for (int i = 0; results.size() < 5 && i < int(results3.size()); i++)
-        if (!used.count(get<0>(results3[i]))) {
-            results.push_back(results3[i]);
-            used.insert(get<0>(results3[i]));
-        }
-
+    auto results = getRecommendations(username);
     function<void(int)> screenResult = [&](int index) {
         printLogo();
         cout << BOLD << BLUE << "You may like… 💡\n\n" << DEFAULT << NORMAL;
