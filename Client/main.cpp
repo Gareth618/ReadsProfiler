@@ -110,7 +110,7 @@ void screenYouMayLike() {
     auto results = getRecommendations(username);
     function<void(int)> screenResult = [&](int index) {
         printLogo();
-        cout << BOLD << BLUE << "You may like… 💡\n\n" << DEFAULT << NORMAL;
+        cout << BOLD << BLUE << "You May Like… 💡\n\n" << DEFAULT << NORMAL;
         printBook(results[index]);
         cout << '\n' << index + 1 << '/' << results.size() << '\n';
         const string arrow = getArrow();
