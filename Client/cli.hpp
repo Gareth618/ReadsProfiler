@@ -1,9 +1,23 @@
-#include <deque>
-#include <vector>
-#include <iostream>
 #include <unistd.h>
 #include <termios.h>
-using namespace std;
+#include <bits/stdc++.h>
+
+using std::cin;
+using std::cout;
+using std::string;
+using std::vector;
+using std::deque;
+using std::set;
+using std::map;
+using std::pair;
+using std::tuple;
+using std::to_string;
+using std::stoi;
+using std::stod;
+using std::function;
+using std::get;
+using std::make_pair;
+using std::invalid_argument;
 
 const string CURSOR_ON = "\e[?25h";
 const string CURSOR_OFF = "\e[?25l";

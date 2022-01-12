@@ -1,5 +1,5 @@
-.DS_Store
 .vscode
+.DS_Store
 db.sqlite
 
 Init/Init.app
@@ -7,7 +7,11 @@ Init/.qmake.stash
 Init/main.o
 Init/Makefile
 
-Client/Client.app
-Client/.qmake.stash
-Client/main.o
-Client/Makefile
+Server/Server.app
+Server/.qmake.stash
+Server/main.o
+Server/Makefile
+
+Books
+Downloads
+Client/Client
