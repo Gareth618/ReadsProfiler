@@ -1,4 +1,8 @@
-## ReadsProfiler
+# ReadsProfiler
+
+Check out the documentation [here](doc.pdf)!
+
+## Instructions
 
 Initialize database:
 
